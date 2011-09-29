@@ -1,0 +1,179 @@
+
+Index Manager for RedBase
+
+Nandu Jayakumar
+CS 346 Spring 2011
+nandu@cs.stanford.edu
+
+
+---------------------------------------
+
+Overall Design:
+
+    An index entry is composed of a key and an RID that points to the
+    data location on a RM file. A B+tree implementation is used to
+    keep an ordered index on the data. This B+tree is built with a <=
+    assumption. Any pointer in an intermediate node points to a child
+    node one level below it such that they key in the intermediate
+    node is the child's largest key.
+
+    B+tree Layout -
+    Simplified to use the same, size and structure for intermediate
+    and leaf nodes. Intermediate nodes do not use the SlotID part of
+    the RID but the same structure was maintained for simplicity.
+    Also simplified to store an (implied) key in the last location on
+    each intermediate node.
+    Additional left and right pointers (PageIDs) are also stored on
+    each node - intermediate as well as leaf.
+    The leaf level is also strictly maintained in an ordered manner so
+    that an index scan can be used to read the data in a sorted way in
+    either direction.
+
+    Duplicate Handling -
+    My design handles the presence of duplicate keys in each B+tree
+    node. This is done by writing several methods that make a
+    "right-most match" guarantee and by implementing all these methods
+    so that they are aware of duplicates. I decided that this would
+    provide better IO benefits than bucket page maintenance.
+
+    Deletion Algorithm -
+    A lazy deletion algorithm was used. An underflow is implemented as
+    a node (intermediate or leaf) which has 0 keys left.
+
+    Scan Optimizations - 
+    The index is expected to primarily be used via the scan
+    interface. Several optimizations use logarithmic B+Tree lookups to
+    set-up a starting and ending point for the eventual scan so that
+    the number of leaf nodes scanned is minimized based on the
+    operation. As an example, OpenScan() with EQ_OP on a non-existent
+    key will set GetNextEntry() up to return EOF when it is called the
+    first time itself. Also, the Scan class supports both descending
+    and ascending (default) scans and uses the right one based on the
+    user's request or optimizations.
+    State of the scan is maintained via current leaf node and
+    current position in leaf node (position just scanned). Additional
+    state like last node/position are also used to optimize the
+    start/end points of the scan.
+
+
+---------------------------------------
+
+Key Data Structures:
+
+    Within a B+tree(node) page the list of keys is always maintained
+    in sorted order. So binary search algorithms can be used everywhere.
+
+    There is no Page Header but each Page node also keeps track of
+    left/right PageIDs as well as the number of keys and serializes
+    this into the page.
+
+    The FileHeader (RM_FileHdr) keeps track of the root page and the
+    number of pages in the B+Tree. It also maintains the height of the
+    tree and its order along with other treewide information like
+    attrType and length.
+
+
+    
+---------------------------------------
+
+Testing:
+
+   Automated unit tests were used to test each class. A popular test
+   harness - google-test, which is in the
+   same style as JUnit was used to make testing fast and automatic.
+   Additionally, the ix_test (modified slightly)
+   was also used to test correctness of the data.
+   Different page sizes were tested as well so that insertion/deletion
+   could be tested with the class/paper examples in the test cases.
+   The tests also contain the B+tree invariants used to ensure that a
+   balanced and correct tree resulted from each operation.
+
+---------------------------------------
+
+Bugs/Known Issues:
+    
+    Marked under several places in the code with //TODO.
+
+---------------------------------------
+
+Design questions for the IX component.
+
+1. Suppose you're indexing an attribute with integer values. Assume
+there are no entries with duplicate values -- that is, each (v,rid)
+inserted into the index has a unique rid and a unique value v. What
+is the maximum number of entries your index can hold before it expands
+to four levels? (If you used buckets for the lowest-level index
+entries, do not count the buckets as a separate level.) Your answer
+should depend on how you structure your internal nodes and leaves, and
+on the page size. Please explain your calculation and point to the
+relevant code. What happens if there are 2 rid's for every value v?
+
+Size per btree node depends on size of attribute and the size of RIDs.
+That calculation is at 
+BtreeNode::BtreeNode()
+btree_node.cc:15
+
+A left/right pointer as well as number of keys also take up space.
+
+Note that I count the rightmost implicit entry also as an entry in my
+btree.
+
+I end up with 340 entries per btree node for PF_PAGE_SIZE(4092). See
+test case at 
+btree_node_gtest.cc:73
+
+
+Each of my internal nodes has the same structure as the leaf node and
+can have the same 340 pointers per node.
+
+Therefore level 1 b+tree has 340 entries possible.
+Therefore level 2 b+tree has 340*340 entries possible.
+Therefore level 3 b+tree has 340*340*340 entries possible.
+
+More than 340*340*340 entries will result in a 4th level.
+
+Please note that 340 is equal to the number of pointers. I count the
+number of keys as 339 + 1 - also 340. The last one is implicit.
+
+
+
+
+2. Describe the algorithm you use for deletion -- are you doing full
+deletion, lazy deletion, tombstones, or something else? If you
+implemented tombstones, how do you handle the space vacated on
+deletion? If you implemented lazy deletion, how do you handle the
+recursive index collapse?
+
+I implemented lazy deletion using an iterative algorithm that deletes
+starting at leaf and goes upwards. Deletion only happens after all
+entries are removed in a node.
+Code is at 
+IndexHandle::DeleteEntry()
+ix_indexhandle.cc:220
+
+Recursive index collapse is handled by iteratively checking each level
+to see if an "underflow" happens after the deletion and then changing
+the parent's pointer based on whether underflow happens.
+
+
+3. Do you use "buckets" pointed to by leaf nodes for holding RIDs for
+a specific attribute value, or do you store RIDs in the actual leaf
+nodes of the B+ tree structure? Briefly describe the advantages and
+disadvantages of the approach that you chose. If you had more time to
+improve your design for leaves and RIDs, what changes would you make? 
+
+Code is at 
+BtreeNode::BtreeNode()
+btree_node.cc:35
+I store RIDs directly in the leaf node. Advantages include the fact
+that I do not need to structure and manage bucket pages
+separately. This also means that I need not open bucket pages during
+an index scan. These bucket pages could be at varying level of
+emptiness if buckets are fixed per value. If the bucket size is not
+fixed per value and is built to be dynamic then we have to build a
+sophisticated method to handle lists of different sizes per key
+values. I decided this was all too complicated.
+I handled the duplicates within the Btree itself. This means that I
+needed slightly more complicated algorithms for setting up scans for
+<= and >= etc... Those are much easier if exactly one leaf entry is
+possible per value.
