@@ -1,0 +1,75 @@
+# depslib dependency file v1.0
+1317329055 source:/home/lgylym/Projects/seeqr/main.cpp
+	<iostream>
+
+1317321787 source:/home/lgylym/Projects/seeqr/pf_buffermgr.cc
+	<cstdio>
+	<unistd.h>
+	<iostream>
+	"pf_buffermgr.h"
+	"statistics.h"
+
+1317321787 /home/lgylym/Projects/seeqr/pf_buffermgr.h
+	"pf_internal.h"
+	"pf_hashtable.h"
+
+1317321787 /home/lgylym/Projects/seeqr/pf_internal.h
+	<cstdlib>
+	<cstring>
+	"pf.h"
+
+1317321787 /home/lgylym/Projects/seeqr/pf.h
+	"redbase.h"
+
+1317321787 /home/lgylym/Projects/seeqr/redbase.h
+	<iostream>
+	<cmath>
+	<cassert>
+
+1317321787 /home/lgylym/Projects/seeqr/pf_hashtable.h
+	"pf_internal.h"
+
+1317321787 source:/home/lgylym/Projects/seeqr/pf_error.cc
+	<cerrno>
+	<cstdio>
+	<iostream>
+	"pf_internal.h"
+
+1317321787 source:/home/lgylym/Projects/seeqr/pf_filehandle.cc
+	<unistd.h>
+	<sys/types.h>
+	"pf_internal.h"
+	"pf_buffermgr.h"
+	"iostream"
+
+1317321787 source:/home/lgylym/Projects/seeqr/pf_hashtable.cc
+	"pf_internal.h"
+	"pf_hashtable.h"
+
+1317321787 source:/home/lgylym/Projects/seeqr/pf_manager.cc
+	<cstdio>
+	<unistd.h>
+	<fcntl.h>
+	<sys/stat.h>
+	<sys/types.h>
+	"pf_internal.h"
+	"pf_buffermgr.h"
+
+1317321787 source:/home/lgylym/Projects/seeqr/pf_pagehandle.cc
+	"pf_internal.h"
+
+1317321787 source:/home/lgylym/Projects/seeqr/pf_statistics.cc
+	<iostream>
+	"pf.h"
+	"statistics.h"
+
+1317321787 source:/home/lgylym/Projects/seeqr/pf_test1.cc
+	<cstdio>
+	<iostream>
+	<cstring>
+	<unistd.h>
+	"pf.h"
+	"pf_internal.h"
+	"pf_hashtable.h"
+	"statistics.h"
+
